@@ -9569,6 +9569,7 @@ void Script::LoadSourceFromKernel(const uint8_t* kernel_buffer,
   String& uri = String::Handle(resolved_url());
   String& source = String::Handle(kernel::KernelLoader::FindSourceForScript(
       kernel_buffer, kernel_buffer_len, uri));
+  OS::PrintErr(">>> LoadSourceFromKernel:%ld url:%s\n",source.Length(), uri.ToMallocCString());
   set_source(source);
 }
 #endif  // !defined(DART_PRECOMPILED_RUNTIME)
@@ -9968,6 +9969,7 @@ RawScript* Script::New(const String& url, const String& source) {
 RawScript* Script::New(const String& url,
                        const String& resolved_url,
                        const String& source) {
+  OS::PrintErr(">>> Script::New:%ld url:%s\n",source.Length(), url.ToMallocCString());
   Thread* thread = Thread::Current();
   Zone* zone = thread->zone();
   const Script& result = Script::Handle(zone, Script::New());
@@ -10716,7 +10718,6 @@ static void AddScriptIfUnique(const GrowableObjectArray& scripts,
     return;
   }
   Script& script_obj = Script::Handle();
-
   for (int i = 0; i < scripts.Length(); i++) {
     script_obj ^= scripts.At(i);
     if (script_obj.raw() == candidate.raw()) {
@@ -10725,13 +10726,24 @@ static void AddScriptIfUnique(const GrowableObjectArray& scripts,
     }
   }
   // Add script to the list of scripts.
+    
+//    const String& url = String::Handle(String::New("org-dartlang-sdk:///sdk/lib/_http/http_impl.dart"));
+//    String::EncodeIRI(uri);
+  const String& url = String::Handle(candidate.url());
+  OS::PrintErr(">>> AddScriptIfUnique url:%s\n",url.ToMallocCString());
+    if (!candidate.HasSource()) {
+        const uint8_t* kernel_buffer = Service::dart_library_kernel();
+        const intptr_t kernel_buffer_len =
+            Service::dart_library_kernel_length();
+        candidate.LoadSourceFromKernel(kernel_buffer, kernel_buffer_len);
+    }
   scripts.Add(candidate);
 }
 
 RawArray* Library::LoadedScripts() const {
   ASSERT(Thread::Current()->IsMutatorThread());
   // We compute the list of loaded scripts lazily. The result is
-  // cached in loaded_scripts_.
+  // cached in loaded_scripts_. 
   if (loaded_scripts() == Array::null()) {
     // TODO(jensj): This can be cleaned up.
     // It really should just return the content of `owned_scripts`, and there

@@ -3260,13 +3260,14 @@ RawError* Service::MaybePause(Isolate* isolate, const Error& error) {
   return error.raw();
 }
 
+//static int DebugBreakPointCounter = 0;
 static bool AddBreakpointCommon(Thread* thread,
                                 JSONStream* js,
                                 const String& script_uri) {
   if (CheckDebuggerDisabled(thread, js)) {
     return true;
   }
-
+  const char* breakPointAtScript = js->LookupParam("breakPointAtScript");
   const char* line_param = js->LookupParam("line");
   intptr_t line = UIntParameter::Parse(line_param);
   const char* col_param = js->LookupParam("column");
@@ -3281,8 +3282,31 @@ static bool AddBreakpointCommon(Thread* thread,
   }
   ASSERT(!script_uri.IsNull());
   Breakpoint* bpt = NULL;
-  bpt = thread->isolate()->debugger()->SetBreakpointAtLineCol(script_uri, line,
-                                                              col);
+
+    if (breakPointAtScript != NULL) {
+//        char str[50];
+//        const char * prefix = "org-dartlang-sdk:///sdk/lib/";
+//        strcpy(str, prefix);
+//        strcat(str, breakPointAtScript);
+        // dart:io-patch/socket_patch.dart
+        String& aScriptUri = String::Handle(String::New(breakPointAtScript));
+        bpt = thread->isolate()->debugger()->SetBreakpointAtLineCol(aScriptUri, line,
+        col);
+    } else {
+        bpt = thread->isolate()->debugger()->SetBreakpointAtLineCol(script_uri, line,
+        col);
+    }    
+//    if (DebugBreakPointCounter == 0) {
+//        DebugBreakPointCounter++;
+//          const String& script_uri_2 = String::Handle(String::New("org-dartlang-sdk:///sdk/lib/_http/http_impl.dart"));
+//          line = 2266;   // 2266 _http/http_impl.dart
+//        bpt = thread->isolate()->debugger()->SetBreakpointAtLineCol(script_uri_2, line,
+//                                                                    col);
+//    } else {
+//        bpt = thread->isolate()->debugger()->SetBreakpointAtLineCol(script_uri, line,
+//        col);
+//    }
+
   if (bpt == NULL) {
     js->PrintError(kCannotAddBreakpoint,
                    "%s: Cannot add breakpoint at line '%s'", js->method(),

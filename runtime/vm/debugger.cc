@@ -3214,6 +3214,7 @@ void Debugger::FindCompiledFunctions(
     if ((function.token_pos() == start_pos) &&
         (function.end_token_pos() == end_pos) &&
         (function.script() == script.raw())) {
+        function.set_is_debuggable(true);
       if (function.is_debuggable()) {
         if (FLAG_enable_interpreter && function.HasBytecode()) {
           bytecode_function_list->Add(function);
@@ -3224,10 +3225,12 @@ void Debugger::FindCompiledFunctions(
       }
       if (function.HasImplicitClosureFunction()) {
         function = function.ImplicitClosureFunction();
+          function.set_is_debuggable(true);
         if (function.is_debuggable()) {
           if (FLAG_enable_interpreter && function.HasBytecode()) {
             bytecode_function_list->Add(function);
           }
+            function.EnsureHasCode();
           if (function.HasCode()) {
             code_function_list->Add(function);
           }
@@ -3258,15 +3261,17 @@ void Debugger::FindCompiledFunctions(
           function ^= functions.At(pos);
           ASSERT(!function.IsNull());
           bool function_added = false;
+            function.set_is_debuggable(true);
           if (function.is_debuggable() &&
-              (function.HasCode() ||
-               (FLAG_enable_interpreter && function.HasBytecode())) &&
+              /* (function.HasCode() ||
+               (FLAG_enable_interpreter && function.HasBytecode())) && */
               function.token_pos() == start_pos &&
               function.end_token_pos() == end_pos &&
               function.script() == script.raw()) {
             if (FLAG_enable_interpreter && function.HasBytecode()) {
               bytecode_function_list->Add(function);
             }
+              function.EnsureHasCode();
             if (function.HasCode()) {
               code_function_list->Add(function);
             }
@@ -3274,10 +3279,12 @@ void Debugger::FindCompiledFunctions(
           }
           if (function_added && function.HasImplicitClosureFunction()) {
             function = function.ImplicitClosureFunction();
+              function.set_is_debuggable(true);
             if (function.is_debuggable()) {
               if (FLAG_enable_interpreter && function.HasBytecode()) {
                 bytecode_function_list->Add(function);
               }
+                function.EnsureHasCode();
               if (function.HasCode()) {
                 code_function_list->Add(function);
               }
@@ -3314,11 +3321,12 @@ bool Debugger::FindBestFit(const Script& script,
   Library& lib = Library::Handle(zone, script.FindLibrary());
   ASSERT(!lib.IsNull());
   if (!lib.IsDebuggable()) {
-    if (FLAG_verbose_debug) {
-      OS::PrintErr("Library '%s' has been marked as non-debuggable\n",
-                   lib.ToCString());
-    }
-    return false;
+      lib.set_debuggable(true);
+//    if (FLAG_verbose_debug) {
+//      OS::PrintErr("Library '%s' has been marked as non-debuggable\n",
+//                   lib.ToCString());
+//    }
+//    return false;
   }
   const GrowableObjectArray& closures = GrowableObjectArray::Handle(
       zone, isolate_->object_store()->closure_functions());
